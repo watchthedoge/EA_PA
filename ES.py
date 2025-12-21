@@ -4,12 +4,12 @@ import numpy as np
 # https://pypi.org/project/ioh/
 from ioh import get_problem, logger, ProblemClass
 
-MU = 10
-budget = 50000
+MU = 5
+LAMBDA =20
+
+budget = 5000
 dimension = 10
 
-
-# To make your results reproducible (not required by the assignment), you could set the random seed by
 np.random.seed(42)
 
 #HELPER FUNCTIONS
@@ -92,6 +92,30 @@ def selection_plus(parents, offspring,problem):
     return combined_parents_offspring[selected_indices], combined_fitness[selected_indices]
 
 
+def selection_mu_lambda_elitist(parents, fitness_parents, offspring, MU, problem):
+    """
+    Weakly elitist (μ,λ)-ES selection
+    """
+    # Evaluate offspring
+    fitness_offspring = np.array([
+        problem(offspring[i, :, 0]) for i in range(len(offspring))
+    ])
+
+    # Select best MU offspring
+    selected_indices = np.argsort(fitness_offspring)[:MU]
+    new_parents = offspring[selected_indices]
+    new_fitness = fitness_offspring[selected_indices]
+
+    #  elitism: keep best parent if better 
+    best_parent_idx = np.argmin(fitness_parents)
+    worst_new_idx = np.argmax(new_fitness)
+
+    if fitness_parents[best_parent_idx] < new_fitness[worst_new_idx]:
+        new_parents[worst_new_idx] = parents[best_parent_idx]
+        new_fitness[worst_new_idx] = fitness_parents[best_parent_idx]
+
+    return new_parents, new_fitness
+
 
 
 #Greedy selection (mu, lambda)
@@ -125,9 +149,8 @@ def studentnumber1_studentnumber2_ES(problem):
     # `problem.state.evaluations` counts the number of function evaluation automatically,
     # which is incremented by 1 whenever you call `problem(x)`.
     # You could also maintain a counter of function evaluations if you prefer.
-    MU = 10
-    LAMBDA = 40
-    SIGMA = 0.5
+    
+    #SIGMA = 0.5
     parents = np.random.uniform(low=-5, high=5, size=(MU, dimension, 2))#setting initial parents using the problem bounds
     parents[:, :, -1] = np.random.uniform(0.0, 1.0, size=(MU, dimension))  # setting the initial sigma to random values between 0 and 1
     counter = 0
@@ -137,6 +160,8 @@ def studentnumber1_studentnumber2_ES(problem):
         offspring = recombination(parents, LAMBDA)
         #mutation
         mutated_offspring = mutate(offspring)
+        #ensure mutated offspring are within bounds
+
         #selection
         parents, fitness_array_parents = selection_mu_lambda(mutated_offspring, MU, problem)
         counter += 1

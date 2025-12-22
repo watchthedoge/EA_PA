@@ -4,17 +4,21 @@ import numpy as np
 # https://pypi.org/project/ioh/
 from ioh import get_problem, logger, ProblemClass
 
+# GLOBAL SETTINGS
 MU = 5
-LAMBDA =20
+LAMBDA = 20
 
 budget = 5000
 dimension = 10
 
+#random seed 42 for reproducibility
 np.random.seed(42)
 
 #HELPER FUNCTIONS
 def recombination(parents, LAMBDA):
     """
+    Implements uniform global discrete recombination
+
     parents: shape (MU, dimension, 2)
              parents[:, :, 0] = x
              parents[:, :, 1] = sigma
@@ -36,7 +40,8 @@ def recombination(parents, LAMBDA):
         offspring[l, :, 1] = parents[parent_idx, np.arange(dimension), 1]
 
     return offspring
-def mutate(offspring, tau=None, tau_prime=None, sigma_min=1e-8):
+
+def mutate(offspring, tau=None, tau_prime=None):
     """
     offspring: shape (LAMBDA, dimension, 2)
                offspring[:, :, 0] = x
@@ -46,7 +51,7 @@ def mutate(offspring, tau=None, tau_prime=None, sigma_min=1e-8):
     """
     lam, dimension, _ = offspring.shape
 
-    # default learning rates (standard ES choice)
+    # default learning rates if not provided, implementated following lecture notes
     if tau is None:
         tau = 1 / np.sqrt(2 * np.sqrt(dimension))
     if tau_prime is None:
@@ -60,15 +65,12 @@ def mutate(offspring, tau=None, tau_prime=None, sigma_min=1e-8):
         tau_prime * global_sample + tau * local_sample
     )
 
-    # optional prevent sigma from becoming too small
-    # offspring[:, :, 1] = np.maximum(offspring[:, :, 1], sigma_min)
-
     # mutate x 
     offspring[:, :, 0] += offspring[:, :, 1] * np.random.standard_normal((lam, dimension))
 
     return offspring
-
-#Greedy selection (mu + lambda)
+'''
+#Elitist selection (mu + lambda)
 def selection_plus(parents, offspring,problem):
     """
     parents: shape (MU, dimension, 2)
@@ -89,41 +91,17 @@ def selection_plus(parents, offspring,problem):
     selected_indices = np.argsort(combined_fitness)[:MU]
     
     # Return the selected parents and their fitness values
-    return combined_parents_offspring[selected_indices], combined_fitness[selected_indices]
+    return combined_parents_offspring[selected_indices]
+'''
 
 
-def selection_mu_lambda_elitist(parents, fitness_parents, offspring, MU, problem):
-    """
-    Weakly elitist (μ,λ)-ES selection
-    """
-    # Evaluate offspring
-    fitness_offspring = np.array([
-        problem(offspring[i, :, 0]) for i in range(len(offspring))
-    ])
-
-    # Select best MU offspring
-    selected_indices = np.argsort(fitness_offspring)[:MU]
-    new_parents = offspring[selected_indices]
-    new_fitness = fitness_offspring[selected_indices]
-
-    #  elitism: keep best parent if better 
-    best_parent_idx = np.argmin(fitness_parents)
-    worst_new_idx = np.argmax(new_fitness)
-
-    if fitness_parents[best_parent_idx] < new_fitness[worst_new_idx]:
-        new_parents[worst_new_idx] = parents[best_parent_idx]
-        new_fitness[worst_new_idx] = fitness_parents[best_parent_idx]
-
-    return new_parents, new_fitness
-
-
-
-#Greedy selection (mu, lambda)
+#selection (mu, lambda)
 def selection_mu_lambda(offspring, MU, problem):
     fitness = []
     evaluated_indices = []
 
     for i in range(len(offspring)):
+        # break if budget is exceeded
         if problem.state.evaluations >= budget:
             break
         fitness.append(problem(offspring[i, :, 0]))
@@ -134,14 +112,15 @@ def selection_mu_lambda(offspring, MU, problem):
 
     # select best MU among evaluated offspring
     selected = np.argsort(fitness)[:min(MU, len(fitness))]
-    return offspring[evaluated_indices[selected]], fitness[selected]
-
-
-
-
+    return offspring[evaluated_indices[selected]]
 
 
 ########################################################################################
+
+########################################################################################
+
+# EVOLUTION STRATEGY IMPLEMENTATION
+
 def studentnumber1_studentnumber2_ES(problem):
     # hint: F18 and F19 are Boolean problems. Consider how to present bitstrings as real-valued vectors in ES
     # initial_pop = ... make sure you randomly create the first population
@@ -150,7 +129,7 @@ def studentnumber1_studentnumber2_ES(problem):
     # which is incremented by 1 whenever you call `problem(x)`.
     # You could also maintain a counter of function evaluations if you prefer.
     
-    #SIGMA = 0.5
+
     parents = np.random.uniform(low=-5, high=5, size=(MU, dimension, 2))#setting initial parents using the problem bounds
     parents[:, :, -1] = np.random.uniform(0.0, 1.0, size=(MU, dimension))  # setting the initial sigma to random values between 0 and 1
     counter = 0
@@ -160,10 +139,8 @@ def studentnumber1_studentnumber2_ES(problem):
         offspring = recombination(parents, LAMBDA)
         #mutation
         mutated_offspring = mutate(offspring)
-        #ensure mutated offspring are within bounds
-
-        #selection
-        parents, fitness_array_parents = selection_mu_lambda(mutated_offspring, MU, problem)
+        #selection + fitness evaluation (in selection function)
+        parents = selection_mu_lambda(mutated_offspring, MU, problem)
         counter += 1
     # no return value needed 
 

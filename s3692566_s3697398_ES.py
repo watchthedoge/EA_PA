@@ -121,7 +121,7 @@ def selection_mu_lambda(offspring, MU, problem):
 
 # EVOLUTION STRATEGY IMPLEMENTATION
 
-def studentnumber1_studentnumber2_ES(problem):
+def s3692566_s3697398_ES(problem):
     # hint: F18 and F19 are Boolean problems. Consider how to present bitstrings as real-valued vectors in ES
     # initial_pop = ... make sure you randomly create the first population
 
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     # this how you run your algorithm with 20 repetitions/independent run
     F23, _logger = create_problem(23)
     for run in range(20): 
-        studentnumber1_studentnumber2_ES(F23)
+        s3692566_s3697398_ES(F23)
         F23.reset() # it is necessary to reset the problem after each independent run
     _logger.close() # after all runs, it is necessary to close the logger to make sure all data are written to the folder
 

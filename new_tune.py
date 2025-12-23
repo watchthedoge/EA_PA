@@ -81,7 +81,6 @@ def run_ES(problem, MU, LAMBDA, selection_type):
         else:
             raise ValueError("selection_type must be 'plus' or 'comma'")
 
-    # ✅ RETURN IOH BEST-SO-FAR VALUE
     return problem.state.current_best.y
 
 # ==========================
